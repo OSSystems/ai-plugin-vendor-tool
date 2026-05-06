@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from ai_plugin_vendor_tool import mirror
 from ai_plugin_vendor_tool.config import Source
 
 
-def _src(**kwargs) -> Source:
-    defaults = {"name": "demo", "repo": "demo/skills"}
+def _src(**kwargs: Any) -> Source:
+    """Build a Source with sensible test defaults; kwargs override fields."""
+    defaults: dict[str, Any] = {"name": "demo", "repo": "demo/skills"}
     return Source(**{**defaults, **kwargs})
 
 
@@ -20,7 +22,7 @@ def _make_skill(root: Path, name: str, *extra_files: str) -> None:
         (skill_dir / f).write_text("hi\n")
 
 
-def test_mirror_copies_skills_returns_sorted_names(tmp_path: Path):
+def test_mirror_copies_skills_returns_sorted_names(tmp_path: Path) -> None:
     pristine = tmp_path / "pristine"
     skills_dir = tmp_path / "skills"
     skills_dir.mkdir()
@@ -36,7 +38,7 @@ def test_mirror_copies_skills_returns_sorted_names(tmp_path: Path):
     assert (skills_dir / "alpha-skill" / "SKILL.md").is_file()
 
 
-def test_mirror_skips_reserved_names(tmp_path: Path):
+def test_mirror_skips_reserved_names(tmp_path: Path) -> None:
     pristine = tmp_path / "pristine"
     skills_dir = tmp_path / "skills"
     skills_dir.mkdir()
@@ -51,7 +53,7 @@ def test_mirror_skips_reserved_names(tmp_path: Path):
     assert (skills_dir / "real-skill").is_dir()
 
 
-def test_mirror_treats_dirs_without_skill_md_as_shared_resource(tmp_path: Path):
+def test_mirror_treats_dirs_without_skill_md_as_shared_resource(tmp_path: Path) -> None:
     pristine = tmp_path / "pristine"
     skills_dir = tmp_path / "skills"
     skills_dir.mkdir()
@@ -69,7 +71,7 @@ def test_mirror_treats_dirs_without_skill_md_as_shared_resource(tmp_path: Path):
     assert (skills_dir / "shared-resources" / "common.md").is_file()
 
 
-def test_mirror_copies_loose_top_level_files(tmp_path: Path):
+def test_mirror_copies_loose_top_level_files(tmp_path: Path) -> None:
     pristine = tmp_path / "pristine"
     skills_dir = tmp_path / "skills"
     skills_dir.mkdir()
@@ -83,7 +85,7 @@ def test_mirror_copies_loose_top_level_files(tmp_path: Path):
     assert (skills_dir / "README.md").read_text() == "upstream readme\n"
 
 
-def test_mirror_honors_exclude_globs(tmp_path: Path):
+def test_mirror_honors_exclude_globs(tmp_path: Path) -> None:
     pristine = tmp_path / "pristine"
     skills_dir = tmp_path / "skills"
     skills_dir.mkdir()
@@ -100,7 +102,7 @@ def test_mirror_honors_exclude_globs(tmp_path: Path):
     assert not (skills_dir / "keep-skill" / "extras").exists()
 
 
-def test_mirror_replaces_stale_target_dir(tmp_path: Path):
+def test_mirror_replaces_stale_target_dir(tmp_path: Path) -> None:
     pristine = tmp_path / "pristine"
     skills_dir = tmp_path / "skills"
     skills_dir.mkdir()
