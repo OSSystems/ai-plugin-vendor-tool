@@ -9,6 +9,7 @@ from pathlib import Path
 
 from ai_plugin_vendor_tool import config, fetch, lock, mirror, notice
 from ai_plugin_vendor_tool.config import PluginMeta, Source
+from ai_plugin_vendor_tool.lock import LockData, LockEntry
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -55,11 +56,12 @@ def _select_sources(all_sources: list[Source], wanted: list[str] | None) -> list
     return [s for s in all_sources if s.name in wanted]
 
 
-def _do_check(meta: PluginMeta, sources: list[Source], lock_data: dict) -> int:  # noqa: ARG001
+def _do_check(sources: list[Source], lock_data: LockData) -> int:
     drift: list[tuple[str, str | None, str]] = []
     for s in sources:
         sha = fetch.resolve_commit(s.repo, s.ref)
-        old = lock_data.get(s.name, {}).get("commit")
+        entry = lock_data.get(s.name)
+        old = entry["commit"] if entry is not None else None
         if sha != old:
             drift.append((s.name, old, sha))
     if drift:
@@ -77,7 +79,7 @@ def _do_sync(
     meta: PluginMeta,
     all_sources: list[Source],
     selected: list[Source],
-    lock_data: dict,
+    lock_data: LockData,
     prune: bool,
 ) -> int:
     vendor_dir = plugin_root / "vendor"
@@ -92,16 +94,16 @@ def _do_sync(
         shutil.rmtree(pristine, ignore_errors=True)
         fetch.fetch_subtree(s.repo, sha, s.subpath, pristine)
         skills = mirror.mirror_source(s, pristine, skills_dir, reserved_names=reserved)
-        lock_data[s.name] = {
-            "repo": s.repo,
-            "ref": s.ref,
-            "commit": sha,
-            "skills": skills,
-        }
+        lock_data[s.name] = LockEntry(
+            repo=s.repo,
+            ref=s.ref,
+            commit=sha,
+            skills=skills,
+        )
         print(f"  -> {sha[:12]} ({len(skills)} skills)")
 
     if prune:
-        listed = {n for e in lock_data.values() for n in e.get("skills", [])}
+        listed = {n for e in lock_data.values() for n in e["skills"]}
         for child in sorted(skills_dir.iterdir()):
             if child.name in reserved or child.name in listed:
                 continue
@@ -142,7 +144,7 @@ def main(argv: list[str] | None = None) -> int:
     lock_data = lock.read_lock(plugin_root / "vendor" / "vendored-skills.lock")
 
     if args.cmd == "check":
-        return _do_check(meta, selected, lock_data)
+        return _do_check(selected, lock_data)
     if args.cmd == "sync":
         return _do_sync(plugin_root, meta, all_sources, selected, lock_data, args.prune)
     return 2  # unreachable; argparse enforces required subcommand
