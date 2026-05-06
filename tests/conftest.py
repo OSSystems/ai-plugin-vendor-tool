@@ -165,4 +165,4 @@ def fake_gh(tmp_path: Path, monkeypatch):
 
 
 # Re-export json for any tests that import it from conftest indirectly.
-__all__ = ["make_plugin", "fake_gh", "json"]
+__all__ = ["fake_gh", "json", "make_plugin"]
