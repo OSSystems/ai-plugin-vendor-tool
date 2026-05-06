@@ -4,7 +4,12 @@ pkgs.mkShell {
   name = "ai-plugin-vendor-tool";
 
   packages = with pkgs; [
-    (python3.withPackages (ps: with ps; [ pytest ]))
+    (python3.withPackages (
+      ps: with ps; [
+        pytest
+        mypy
+      ]
+    ))
     gh
     curl
     jq
