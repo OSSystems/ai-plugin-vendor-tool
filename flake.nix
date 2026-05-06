@@ -9,12 +9,23 @@
 
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+
+    nix-github-actions.url = "github:nix-community/nix-github-actions";
+    nix-github-actions.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
     inputs:
-    inputs.red-tape.mkFlake {
-      inherit inputs;
-      src = ./.;
+    let
+      base = inputs.red-tape.mkFlake {
+        inherit inputs;
+        src = ./.;
+      };
+    in
+    base
+    // {
+      githubActions = inputs.nix-github-actions.lib.mkGithubMatrix {
+        checks = { inherit (base.checks) x86_64-linux; };
+      };
     };
 }

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import stat
+import sys
 import tarfile
 import textwrap
 from io import BytesIO
@@ -94,7 +95,7 @@ def fake_gh(tmp_path: Path, monkeypatch):
     shim_path = bin_dir / "gh"
     shim_src = textwrap.dedent(
         f"""
-        #!/usr/bin/env python3
+        #!{sys.executable}
         import json
         import sys
         from pathlib import Path

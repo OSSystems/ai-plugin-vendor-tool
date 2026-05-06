@@ -1,0 +1,50 @@
+name: "Continuous Integration"
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches:
+      - master
+      - 'releases/**'
+  schedule:
+    # Nightly build at 05:00 UTC (02:00 BRT).
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  nix-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: nixbuild/nix-quick-install-action@v34
+      - id: set-matrix
+        name: Generate Nix Matrix
+        run: |
+          set -euo pipefail
+
+          matrix="$(nix eval --json '.#githubActions.matrix')"
+          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+
+  nix-check:
+    needs: nix-matrix
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix: ${{ fromJSON(needs.nix-matrix.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: nixbuild/nix-quick-install-action@v34
+      - name: Restore and cache Nix store
+        uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+      - run: nix build -L ".#${{ matrix.attr }}" --keep-going
