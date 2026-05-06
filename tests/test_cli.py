@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
-
-import pytest
 
 from ai_plugin_vendor_tool import cli
 
@@ -146,7 +143,9 @@ def test_sync_keeps_plugin_own_skill_during_prune(make_plugin, fake_gh):
 
 
 def test_sync_source_filter_only_syncs_named(make_plugin, fake_gh):
-    toml = _alice_toml() + """
+    toml = (
+        _alice_toml()
+        + """
         [[source]]
         name            = "bob-skills"
         repo            = "bob/skills"
@@ -154,6 +153,7 @@ def test_sync_source_filter_only_syncs_named(make_plugin, fake_gh):
         subpath         = "skills"
         attribution     = "Bob"
     """
+    )
     root = make_plugin(vendor_toml=toml)
     _setup_alice(fake_gh)
     fake_gh.set_commit("bob/skills", "main", "bobsha")

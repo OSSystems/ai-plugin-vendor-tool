@@ -23,9 +23,7 @@ def fetch_subtree(repo: str, sha: str, subpath: str, dest: Path) -> None:
     tarballs is stripped.
     """
     dest.mkdir(parents=True, exist_ok=True)
-    proc = subprocess.Popen(
-        ["gh", "api", f"repos/{repo}/tarball/{sha}"], stdout=subprocess.PIPE
-    )
+    proc = subprocess.Popen(["gh", "api", f"repos/{repo}/tarball/{sha}"], stdout=subprocess.PIPE)
     assert proc.stdout is not None
     try:
         with tarfile.open(fileobj=proc.stdout, mode="r|gz") as tf:
@@ -33,12 +31,10 @@ def fetch_subtree(repo: str, sha: str, subpath: str, dest: Path) -> None:
             for m in tf:
                 if sub_prefix is None:
                     root_prefix = m.name.split("/", 1)[0] + "/"
-                    sub_prefix = (
-                        f"{root_prefix}{subpath.rstrip('/')}/" if subpath else root_prefix
-                    )
+                    sub_prefix = f"{root_prefix}{subpath.rstrip('/')}/" if subpath else root_prefix
                 if not m.name.startswith(sub_prefix):
                     continue
-                rel = m.name[len(sub_prefix):]
+                rel = m.name[len(sub_prefix) :]
                 if not rel:
                     continue
                 target = dest / rel

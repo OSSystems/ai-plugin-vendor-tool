@@ -64,6 +64,4 @@ def discover_plugin_root(start: Path) -> Path:
     for candidate in candidates:
         if (candidate / PLUGIN_MANIFEST).is_file():
             return candidate
-    raise FileNotFoundError(
-        f"no .claude-plugin/plugin.json found from {start} upward"
-    )
+    raise FileNotFoundError(f"no .claude-plugin/plugin.json found from {start} upward")

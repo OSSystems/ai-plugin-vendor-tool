@@ -36,13 +36,17 @@ def make_plugin(tmp_path: Path):
         (root / ".claude-plugin").mkdir(parents=True)
         (root / "vendor").mkdir()
         (root / "skills").mkdir()
-        manifest_data = manifest if manifest is not None else {
-            "name": name,
-            "version": "0.1.0",
-            "description": "demo",
-            "author": {"name": author},
-            "license": license,
-        }
+        manifest_data = (
+            manifest
+            if manifest is not None
+            else {
+                "name": name,
+                "version": "0.1.0",
+                "description": "demo",
+                "author": {"name": author},
+                "license": license,
+            }
+        )
         (root / ".claude-plugin" / "plugin.json").write_text(
             json.dumps(manifest_data, indent=2) + "\n"
         )
@@ -93,8 +97,9 @@ def fake_gh(tmp_path: Path, monkeypatch):
     bin_dir.mkdir()
 
     shim_path = bin_dir / "gh"
-    shim_src = textwrap.dedent(
-        f"""
+    shim_src = (
+        textwrap.dedent(
+            f"""
         #!{sys.executable}
         import json
         import sys
@@ -131,7 +136,9 @@ def fake_gh(tmp_path: Path, monkeypatch):
                 sys.exit(0)
         fail(f"unhandled argv {{argv}}")
         """
-    ).strip() + "\n"
+        ).strip()
+        + "\n"
+    )
     shim_path.write_text(shim_src)
     shim_path.chmod(shim_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
