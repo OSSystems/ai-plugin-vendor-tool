@@ -6,26 +6,11 @@ import json
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any
 
 PLUGIN_MANIFEST = Path(".claude-plugin/plugin.json")
 VENDOR_TOML = Path("vendor/vendored-skills.toml")
-
-
-class _Author(TypedDict, total=False):
-    name: str
-
-
-class _PluginManifest(TypedDict, total=False):
-    """Subset of `.claude-plugin/plugin.json` we read.
-
-    The manifest is authored by plugin developers and may carry extra keys
-    we ignore; only the ones below feed `PluginMeta`.
-    """
-
-    name: str
-    author: str | _Author
-    license: str
+VENDOR_LOCK = Path("vendor/vendored-skills.lock")
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,7 +34,7 @@ class Source:
 
 def load_plugin_meta(root: Path) -> PluginMeta:
     """Read the plugin manifest at <root>/.claude-plugin/plugin.json."""
-    raw: _PluginManifest = json.loads((root / PLUGIN_MANIFEST).read_text())
+    raw: dict[str, Any] = json.loads((root / PLUGIN_MANIFEST).read_text())
     if "name" not in raw:
         raise KeyError(f"{PLUGIN_MANIFEST} is missing required field 'name'")
     author_field = raw.get("author")
@@ -71,11 +56,11 @@ def load_sources(root: Path) -> list[Source]:
 
     Returns an empty list if the file does not exist.
     """
-    path = root / VENDOR_TOML
-    if not path.is_file():
+    try:
+        with (root / VENDOR_TOML).open("rb") as f:
+            data: dict[str, Any] = tomllib.load(f)
+    except FileNotFoundError:
         return []
-    with path.open("rb") as f:
-        data: dict[str, Any] = tomllib.load(f)
     return [Source(**s) for s in data.get("source", [])]
 
 
