@@ -5,19 +5,26 @@ from pathlib import Path
 import pytest
 
 from ai_plugin_vendor_tool import fetch
+from ai_plugin_vendor_tool.fetch import GhError
 
 
-def test_resolve_commit_calls_gh(fake_gh):
+def test_resolve_commit_calls_gh(fake_gh) -> None:
     fake_gh.set_commit("alice/skills", "main", "abc123def4567890")
     assert fetch.resolve_commit("alice/skills", "main") == "abc123def4567890"
 
 
-def test_resolve_commit_strips_whitespace(fake_gh):
+def test_resolve_commit_strips_whitespace(fake_gh) -> None:
     fake_gh.set_commit("alice/skills", "main", "abc123\n")
     assert fetch.resolve_commit("alice/skills", "main") == "abc123"
 
 
-def test_fetch_subtree_extracts_subpath(fake_gh, tmp_path: Path):
+def test_resolve_commit_raises_gh_error_when_gh_fails(fake_gh) -> None:
+    # No commit set up for this ref → fake gh exits non-zero.
+    with pytest.raises(GhError, match="gh api"):
+        fetch.resolve_commit("alice/skills", "missing-ref")
+
+
+def test_fetch_subtree_extracts_subpath(fake_gh, tmp_path: Path) -> None:
     fake_gh.set_tarball(
         "alice/skills",
         "abc123",
@@ -42,7 +49,7 @@ def test_fetch_subtree_extracts_subpath(fake_gh, tmp_path: Path):
     assert not (dest / "other").exists()
 
 
-def test_fetch_subtree_empty_subpath_extracts_full_root(fake_gh, tmp_path: Path):
+def test_fetch_subtree_empty_subpath_extracts_full_root(fake_gh, tmp_path: Path) -> None:
     fake_gh.set_tarball(
         "alice/skills",
         "abc123",
@@ -60,7 +67,7 @@ def test_fetch_subtree_empty_subpath_extracts_full_root(fake_gh, tmp_path: Path)
     assert (dest / "skills" / "foo" / "SKILL.md").read_text() == "# foo\n"
 
 
-def test_fetch_subtree_propagates_gh_failure(monkeypatch, tmp_path: Path):
+def test_fetch_subtree_propagates_gh_failure(monkeypatch, tmp_path: Path) -> None:
     """If `gh` is missing, fetch_subtree must surface the error, not corrupt dest."""
     monkeypatch.setenv("PATH", "/no-such-dir")
     with pytest.raises((FileNotFoundError, OSError)):
