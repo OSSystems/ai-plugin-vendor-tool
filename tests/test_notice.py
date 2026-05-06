@@ -4,6 +4,7 @@ from pathlib import Path
 
 from ai_plugin_vendor_tool import notice
 from ai_plugin_vendor_tool.config import PluginMeta, Source
+from ai_plugin_vendor_tool.lock import LockData, LockEntry
 
 
 def _meta() -> PluginMeta:
@@ -23,24 +24,24 @@ def _sources() -> list[Source]:
     ]
 
 
-def _lock() -> dict:
+def _lock() -> LockData:
     return {
-        "alice-skills": {
-            "repo": "alice/skills",
-            "ref": "main",
-            "commit": "abc123def456789",
-            "skills": ["one", "two", "three"],
-        }
+        "alice-skills": LockEntry(
+            repo="alice/skills",
+            ref="main",
+            commit="abc123def456789",
+            skills=["one", "two", "three"],
+        ),
     }
 
 
-def test_render_notice_header_uses_plugin_meta():
+def test_render_notice_header_uses_plugin_meta() -> None:
     text = notice.render_notice(_meta(), _sources(), _lock())
     assert text.startswith("demo-plugin\nCopyright (c) Demo Org\n")
     assert "Licensed under the Apache-2.0 License" in text
 
 
-def test_render_notice_lists_skills():
+def test_render_notice_lists_skills() -> None:
     text = notice.render_notice(_meta(), _sources(), _lock())
     assert "## alice-skills" in text
     assert "Source:       https://github.com/alice/skills" in text
@@ -50,20 +51,23 @@ def test_render_notice_lists_skills():
     assert "Skills (3): one, two, three" in text
 
 
-def test_render_notice_attribution_url_falls_back_to_repo():
+def test_render_notice_attribution_url_falls_back_to_repo() -> None:
     src = Source(name="bob-skills", repo="bob/skills", attribution="Bob")
-    text = notice.render_notice(_meta(), [src], {"bob-skills": {"commit": "x", "skills": []}})
+    lock_data: LockData = {
+        "bob-skills": LockEntry(repo="bob/skills", ref="main", commit="x", skills=[]),
+    }
+    text = notice.render_notice(_meta(), [src], lock_data)
     assert "Source:       https://github.com/bob/skills" in text
 
 
-def test_render_notice_handles_unknown_lock_entry():
+def test_render_notice_handles_unknown_lock_entry() -> None:
     src = Source(name="charlie", repo="charlie/skills", attribution="Charlie")
     text = notice.render_notice(_meta(), [src], {})
     assert "Ref:          main (commit (unknown))" in text
     assert "Skills (0): (none)" in text
 
 
-def test_write_notice_creates_file(tmp_path: Path):
+def test_write_notice_creates_file(tmp_path: Path) -> None:
     out = tmp_path / "NOTICE"
     notice.write_notice(out, _meta(), _sources(), _lock())
     assert out.read_text() == notice.render_notice(_meta(), _sources(), _lock())

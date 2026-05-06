@@ -5,11 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from ai_plugin_vendor_tool.config import PluginMeta, Source
+from ai_plugin_vendor_tool.lock import LockData
 
 _BAR = "-" * 79
 
 
-def render_notice(meta: PluginMeta, sources: list[Source], lock: dict) -> str:
+def render_notice(meta: PluginMeta, sources: list[Source], lock: LockData) -> str:
     header = (
         f"{meta.name}\n"
         f"Copyright (c) {meta.author}\n\n"
@@ -23,9 +24,9 @@ def render_notice(meta: PluginMeta, sources: list[Source], lock: dict) -> str:
     )
     blocks: list[str] = []
     for s in sources:
-        entry = lock.get(s.name, {})
-        sha = entry.get("commit", "(unknown)")
-        skills = entry.get("skills", [])
+        entry = lock.get(s.name)
+        sha = entry["commit"] if entry is not None else "(unknown)"
+        skills = entry["skills"] if entry is not None else []
         url = s.attribution_url or f"https://github.com/{s.repo}"
         skills_fmt = ", ".join(skills) if skills else "(none)"
         blocks.append(
@@ -41,5 +42,5 @@ def render_notice(meta: PluginMeta, sources: list[Source], lock: dict) -> str:
     return header + "".join(blocks)
 
 
-def write_notice(path: Path, meta: PluginMeta, sources: list[Source], lock: dict) -> None:
+def write_notice(path: Path, meta: PluginMeta, sources: list[Source], lock: LockData) -> None:
     path.write_text(render_notice(meta, sources, lock))
