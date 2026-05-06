@@ -112,7 +112,7 @@ def _do_sync(
             print(f"pruning orphan skill {child.name}")
             shutil.rmtree(child)
 
-    lock.write_lock(vendor_dir / "vendored-skills.lock", lock_data)
+    lock.write_lock(plugin_root / config.VENDOR_LOCK, lock_data)
     notice.write_notice(plugin_root / "NOTICE", meta, all_sources, lock_data)
     print("done")
     return 0
@@ -141,7 +141,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: no matching sources: {args.source}", file=sys.stderr)
         return 2
 
-    lock_data = lock.read_lock(plugin_root / "vendor" / "vendored-skills.lock")
+    lock_data = lock.read_lock(plugin_root / config.VENDOR_LOCK)
 
     if args.cmd == "check":
         return _do_check(selected, lock_data)
