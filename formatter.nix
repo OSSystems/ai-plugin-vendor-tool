@@ -21,10 +21,7 @@ inputs.treefmt-nix.lib.mkWrapper pkgs (
         directories."" = {
           extraPythonPaths = [ "src" ];
           extraPythonPackages = [ pkgs.python3Packages.pytest ];
-          options = [
-            "--config-file=pyproject.toml"
-            "--no-incremental"
-          ];
+          options = [ "--config-file=pyproject.toml" ];
           modules = [
             "src/ai_plugin_vendor_tool"
             "tests"

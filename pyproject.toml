@@ -93,10 +93,9 @@ namespace_packages = true
 strict = true
 
 [[tool.mypy.overrides]]
+# Pytest fixtures arrive without annotations from pytest itself; relax
+# def-annotation rules for tests only. Source code stays strict.
 module = "tests.*"
-# Pytest fixtures arrive without annotations from pytest itself, and we
-# pass `**kwargs: Any` through helpers; tests don't need fully annotated
-# parameters yet. Source code keeps full strict mode.
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 disallow_untyped_calls = false
