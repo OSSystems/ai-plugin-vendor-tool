@@ -10,6 +10,7 @@ import tarfile
 import textwrap
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -28,7 +29,7 @@ def make_plugin(tmp_path: Path):
         name: str = "demo-plugin",
         author: str = "Demo Org",
         license: str = "Apache-2.0",
-        manifest: dict | None = None,
+        manifest: dict[str, Any] | None = None,
         vendor_toml: str | None = None,
         subdir: str = "plugin",
     ) -> Path:
