@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 class GhError(RuntimeError):
-    """Raised when a `gh` invocation fails or returns no usable output."""
+    """Raised when a `gh` invocation fails. Carries `gh`'s stderr in the message."""
 
 
 def resolve_commit(repo: str, ref: str) -> str:
@@ -25,10 +25,7 @@ def resolve_commit(repo: str, ref: str) -> str:
             f"gh api repos/{repo}/commits/{ref} failed (exit {exc.returncode}): "
             f"{(exc.stderr or '').strip()}"
         ) from exc
-    sha = out.strip()
-    if not sha:
-        raise GhError(f"gh api repos/{repo}/commits/{ref} returned no SHA")
-    return sha
+    return out.strip()
 
 
 def fetch_subtree(repo: str, sha: str, subpath: str, dest: Path) -> None:
@@ -39,21 +36,14 @@ def fetch_subtree(repo: str, sha: str, subpath: str, dest: Path) -> None:
     tarballs is stripped.
     """
     dest.mkdir(parents=True, exist_ok=True)
-    with subprocess.Popen(
-        ["gh", "api", f"repos/{repo}/tarball/{sha}"],
-        stdout=subprocess.PIPE,
-    ) as proc:
+    cmd = ["gh", "api", f"repos/{repo}/tarball/{sha}"]
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc:
         if proc.stdout is None:
             raise GhError("gh subprocess did not expose a stdout pipe")
-        try:
-            with tarfile.open(fileobj=proc.stdout, mode="r|gz") as tf:
-                _extract_subtree(tf, subpath, dest)
-        finally:
-            # Drain whatever the child still has buffered so it can exit
-            # cleanly; tarfile may have stopped reading early.
-            proc.stdout.close()
-        if proc.wait() != 0:
-            raise subprocess.CalledProcessError(proc.returncode, proc.args)
+        with tarfile.open(fileobj=proc.stdout, mode="r|gz") as tf:
+            _extract_subtree(tf, subpath, dest)
+    if proc.returncode != 0:
+        raise subprocess.CalledProcessError(proc.returncode, cmd)
 
 
 def _extract_subtree(tf: tarfile.TarFile, subpath: str, dest: Path) -> None:
