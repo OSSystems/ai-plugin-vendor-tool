@@ -9,7 +9,32 @@ so any Claude Code plugin can vendor skills without copy-pasting the script.
 
 ## Install
 
-### Nix
+### Nix flake (consume from another flake)
+
+The tool is exposed as `packages.<system>.default`, with `gh` wrapped onto its `PATH`.
+
+```nix
+{
+  inputs.ai-plugin-vendor-tool.url = "github:OSSystems/ai-plugin-vendor-tool";
+  inputs.ai-plugin-vendor-tool.inputs.nixpkgs.follows = "nixpkgs";
+  # ...
+  outputs = { self, nixpkgs, ai-plugin-vendor-tool, ... }: {
+    devShells.x86_64-linux.default = nixpkgs.legacyPackages.x86_64-linux.mkShell {
+      packages = [
+        ai-plugin-vendor-tool.packages.x86_64-linux.default
+      ];
+    };
+  };
+}
+```
+
+Or run it directly:
+
+```sh
+nix run github:OSSystems/ai-plugin-vendor-tool -- --help
+```
+
+### Nix (this repo)
 
 ```sh
 cd ai-plugin-vendor-tool
