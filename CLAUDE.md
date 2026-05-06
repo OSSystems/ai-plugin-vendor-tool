@@ -8,9 +8,22 @@ from upstream GitHub repos into a plugin's `skills/` tree, with a JSON lockfile 
 
 - **Enter dev shell:** `nix develop` (or `direnv allow` once)
 - **Run tests:** `pytest` (offline; uses a fake `gh` shim on `PATH`)
-- **Format:** `nix fmt`
+- **Format + lint + type-check:** `nix fmt` (treefmt runs every tool listed in
+  [`treefmt.nix`](treefmt.nix))
 - **Run the CLI from the source tree:** `python -m ai_plugin_vendor_tool sync|check`
 - **User-facing usage:** see [`README.md`](README.md)
+
+## Required pre-commit checks
+
+Before every `git commit`, both of the following must succeed:
+
+1. `pytest` — full suite, offline.
+2. `nix fmt` — treefmt drives every formatter, linter, and type checker registered in
+   [`treefmt.nix`](treefmt.nix). A clean working tree afterwards (`git diff --quiet`) means
+   nothing else needed reformatting.
+
+If either step fails or rewrites files, fix the cause and re-stage before committing — do not
+bypass with `--no-verify`.
 
 ## Guardrails (apply to every change)
 
@@ -23,7 +36,7 @@ from upstream GitHub repos into a plugin's `skills/` tree, with a JSON lockfile 
 3. **TDD.** Every module gets failing tests before code. Tests must run offline — use the `fake_gh`
    fixture in `tests/conftest.py`, never make real network calls.
 4. **Stdlib-only runtime.** Adding a third-party runtime dep needs a real justification (stdlib
-   would force an awkward shape). `pytest` is the only dev dep.
+   would force an awkward shape). Dev dependencies (`pytest`, `mypy`, `ruff`, …) are unconstrained.
 
 ## More
 
