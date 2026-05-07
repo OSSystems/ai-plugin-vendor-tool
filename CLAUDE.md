@@ -36,7 +36,7 @@ bypass with `--no-verify`.
 1. **TDD.** Every module gets failing tests before code. Tests must run offline — use the `fake_gh`
    fixture in `tests/conftest.py`, never make real network calls.
 1. **Stdlib-only runtime.** Adding a third-party runtime dep needs a real justification (stdlib
-   would force an awkward shape). Dev dependencies (`pytest`, `mypy`, `ruff`, …) are unconstrained.
+   would force an awkward shape). Dev dependencies (`pytest`, `pyright`, `ruff`, …) are unconstrained.
 
 ## More
 

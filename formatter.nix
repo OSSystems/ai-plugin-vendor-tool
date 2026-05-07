@@ -4,6 +4,9 @@
 # from the project root; it must evaluate to a derivation (the treefmt
 # wrapper). We build that wrapper from a treefmt-nix module that registers
 # every formatter, linter, and type checker the project relies on.
+let
+  pyrightPython = pkgs.python3.withPackages (ps: with ps; [ pytest ]);
+in
 inputs.treefmt-nix.lib.mkWrapper pkgs (
   { ... }:
   {
@@ -16,18 +19,25 @@ inputs.treefmt-nix.lib.mkWrapper pkgs (
       ruff-check.enable = true;
       mdformat.enable = true;
       taplo.enable = true;
-      mypy = {
-        enable = true;
-        directories."" = {
-          extraPythonPaths = [ "src" ];
-          extraPythonPackages = [ pkgs.python3Packages.pytest ];
-          options = [ "--config-file=pyproject.toml" ];
-          modules = [
-            "src/ai_plugin_vendor_tool"
-            "tests"
-          ];
-        };
-      };
+    };
+
+    # treefmt-nix has no built-in pyright module; register it as a custom
+    # formatter. Pyright auto-loads `[tool.pyright]` from pyproject.toml.
+    # PYTHONPATH=src lets it resolve the package; --pythonpath points at a
+    # python env that includes pytest so test imports resolve.
+    settings.formatter.pyright = {
+      command = "${pkgs.bash}/bin/bash";
+      options = [
+        "-eucx"
+        ''
+          export PYTHONPATH="src"
+          ${pkgs.pyright}/bin/pyright --pythonpath ${pyrightPython}/bin/python
+        ''
+      ];
+      includes = [
+        "src/**/*.py"
+        "tests/**/*.py"
+      ];
     };
 
     settings.global.excludes = [
