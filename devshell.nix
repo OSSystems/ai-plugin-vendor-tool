@@ -7,9 +7,9 @@ pkgs.mkShell {
     (python3.withPackages (
       ps: with ps; [
         pytest
-        mypy
       ]
     ))
+    pyright
     gh
     curl
     jq
