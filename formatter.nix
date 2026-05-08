@@ -19,25 +19,21 @@ inputs.treefmt-nix.lib.mkWrapper pkgs (
       ruff-check.enable = true;
       mdformat.enable = true;
       taplo.enable = true;
-    };
-
-    # treefmt-nix has no built-in pyright module; register it as a custom
-    # formatter. Pyright auto-loads `[tool.pyright]` from pyproject.toml.
-    # PYTHONPATH=src lets it resolve the package; --pythonpath points at a
-    # python env that includes pytest so test imports resolve.
-    settings.formatter.pyright = {
-      command = "${pkgs.bash}/bin/bash";
-      options = [
-        "-eucx"
-        ''
-          export PYTHONPATH="src"
-          ${pkgs.pyright}/bin/pyright --pythonpath ${pyrightPython}/bin/python
-        ''
-      ];
-      includes = [
-        "src/**/*.py"
-        "tests/**/*.py"
-      ];
+      # Pyright auto-loads `[tool.pyright]` from pyproject.toml. `--pythonpath`
+      # points at a python env that includes pytest so test imports resolve.
+      pyright = {
+        enable = true;
+        directories."" = {
+          options = [
+            "--pythonpath"
+            "${pyrightPython}/bin/python"
+          ];
+          modules = [
+            "src"
+            "tests"
+          ];
+        };
+      };
     };
 
     settings.global.excludes = [
