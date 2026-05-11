@@ -72,3 +72,30 @@ def test_fetch_subtree_propagates_gh_failure(monkeypatch, tmp_path: Path) -> Non
     monkeypatch.setenv("PATH", "/no-such-dir")
     with pytest.raises((FileNotFoundError, OSError)):
         fetch.fetch_subtree("alice/skills", "abc123", "skills", tmp_path / "pristine")
+
+
+def test_fetch_subtree_rejects_path_traversal(fake_gh, tmp_path: Path) -> None:
+    """A tarball entry that escapes dest via `..` must be rejected, not written."""
+    fake_gh.set_tarball(
+        "alice/skills",
+        "abc123",
+        root_prefix="alice-skills-abc123",
+        layout={
+            "skills/foo/SKILL.md": "# foo\n",
+            "skills/../escape.txt": "evil\n",
+        },
+    )
+    dest = tmp_path / "pristine"
+    with pytest.raises(ValueError, match="escape"):
+        fetch.fetch_subtree("alice/skills", "abc123", "skills", dest)
+    # And the escape file must not have been written anywhere.
+    assert not (tmp_path / "escape.txt").exists()
+    assert not (dest.parent / "escape.txt").exists()
+
+
+def test_fetch_subtree_surfaces_gh_stderr_on_failure(fake_gh, tmp_path: Path) -> None:
+    """When gh fails before producing tar output, surface gh's stderr in GhError."""
+    # Commit resolves, but no tarball is registered for it → fake gh exits non-zero
+    # with a stderr message.
+    with pytest.raises(GhError, match="unset tarball"):
+        fetch.fetch_subtree("alice/skills", "missing-sha", "skills", tmp_path / "pristine")

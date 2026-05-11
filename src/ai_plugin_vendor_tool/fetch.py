@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import tarfile
+import tempfile
 from pathlib import Path
 
 
@@ -33,20 +34,34 @@ def fetch_subtree(repo: str, sha: str, subpath: str, dest: Path) -> None:
 
     `subpath` is relative to the repo root. An empty string extracts the whole
     repo. The leading `<repo>-<sha-prefix>/` directory GitHub injects in its
-    tarballs is stripped.
+    tarballs is stripped. Tarball members that would escape `dest` (via `..`
+    or absolute paths) are rejected.
     """
     dest.mkdir(parents=True, exist_ok=True)
     cmd = ["gh", "api", f"repos/{repo}/tarball/{sha}"]
-    with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc:
-        if proc.stdout is None:
-            raise GhError("gh subprocess did not expose a stdout pipe")
-        with tarfile.open(fileobj=proc.stdout, mode="r|gz") as tf:
-            _extract_subtree(tf, subpath, dest)
+    label = f"gh api repos/{repo}/tarball/{sha}"
+    # stderr → tempfile so the OS buffers it; reading a pipe after the tar
+    # stream has finished can deadlock if gh wrote enough to fill the buffer.
+    with tempfile.TemporaryFile() as errf:
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=errf) as proc:
+            if proc.stdout is None:
+                raise GhError("gh subprocess did not expose a stdout pipe")
+            tar_error: tarfile.TarError | None = None
+            try:
+                with tarfile.open(fileobj=proc.stdout, mode="r|gz") as tf:
+                    _extract_subtree(tf, subpath, dest)
+            except tarfile.TarError as exc:
+                tar_error = exc
+        errf.seek(0)
+        err = errf.read().decode(errors="replace").strip()
+    if tar_error is not None:
+        raise GhError(f"{label} failed (exit {proc.returncode}): {err or tar_error}") from tar_error
     if proc.returncode != 0:
-        raise subprocess.CalledProcessError(proc.returncode, cmd)
+        raise GhError(f"{label} failed (exit {proc.returncode}): {err}")
 
 
 def _extract_subtree(tf: tarfile.TarFile, subpath: str, dest: Path) -> None:
+    dest_resolved = dest.resolve()
     sub_prefix: str | None = None
     for m in tf:
         if sub_prefix is None:
@@ -57,7 +72,9 @@ def _extract_subtree(tf: tarfile.TarFile, subpath: str, dest: Path) -> None:
         rel = m.name[len(sub_prefix) :]
         if not rel:
             continue
-        target = dest / rel
+        target = (dest / rel).resolve()
+        if not target.is_relative_to(dest_resolved):
+            raise ValueError(f"tarball entry would escape dest: {m.name!r}")
         if m.isdir():
             target.mkdir(parents=True, exist_ok=True)
         elif m.isfile():
