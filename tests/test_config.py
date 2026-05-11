@@ -72,6 +72,30 @@ def test_load_sources_missing_returns_empty(make_plugin):
     assert config.load_sources(root) == []
 
 
+def test_load_sources_unknown_field_reports_name_and_key(make_plugin):
+    root = make_plugin(
+        vendor_toml="""
+        [[source]]
+        name    = "alice-skills"
+        repo    = "alice/skills"
+        subpaht = "skills"
+        """
+    )
+    with pytest.raises(ValueError, match=r"alice-skills.*subpaht"):
+        config.load_sources(root)
+
+
+def test_load_sources_missing_required_field_reports_clearly(make_plugin):
+    root = make_plugin(
+        vendor_toml="""
+        [[source]]
+        repo = "alice/skills"
+        """
+    )
+    with pytest.raises(ValueError, match="name"):
+        config.load_sources(root)
+
+
 def test_discover_plugin_root_walks_up(make_plugin):
     root = make_plugin()
     # Create a deeply nested cwd inside the plugin.

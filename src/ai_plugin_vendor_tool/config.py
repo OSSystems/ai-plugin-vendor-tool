@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import tomllib
 from dataclasses import dataclass, field
@@ -59,17 +60,35 @@ def load_plugin_meta(root: Path) -> PluginMeta:
     )
 
 
+_SOURCE_FIELDS = frozenset(f.name for f in dataclasses.fields(Source))
+
+
 def load_sources(root: Path) -> list[Source]:
     """Read vendor/vendored-skills.toml and return its [[source]] entries.
 
-    Returns an empty list if the file does not exist.
+    Returns an empty list if the file does not exist. Raises ValueError if a
+    source has an unknown or missing required field, naming the offending entry.
     """
     try:
         with (root / VENDOR_TOML).open("rb") as f:
             data: dict[str, Any] = tomllib.load(f)
     except FileNotFoundError:
         return []
-    return [Source(**s) for s in data.get("source", [])]
+    sources: list[Source] = []
+    for idx, raw in enumerate(data.get("source", [])):
+        label = raw.get("name") or f"#{idx}"
+        unknown = sorted(set(raw) - _SOURCE_FIELDS)
+        if unknown:
+            raise ValueError(
+                f"source {label!r} in {VENDOR_TOML} has unknown field(s): {', '.join(unknown)}"
+            )
+        try:
+            sources.append(Source(**raw))
+        except TypeError as exc:
+            raise ValueError(
+                f"source {label!r} in {VENDOR_TOML} is missing a required field: {exc}"
+            ) from exc
+    return sources
 
 
 def discover_plugin_root(start: Path) -> Path:
