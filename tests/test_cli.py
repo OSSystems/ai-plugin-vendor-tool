@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 
-from ai_plugin_vendor_tool import cli
+import pytest
+
+from ai_plugin_vendor_tool import __version__, cli
 
 
 def _setup_alice(fake_gh, sha: str = "abc123def4567890") -> None:
@@ -195,3 +197,11 @@ def test_missing_vendor_toml_returns_error_code(make_plugin):
     root = make_plugin()  # no vendor_toml
     rc = cli.main(["sync", "--plugin-root", str(root)])
     assert rc != 0
+
+
+def test_version_flag(capsys):
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["--version"])
+    assert excinfo.value.code == 0
+    out = capsys.readouterr().out
+    assert __version__ in out

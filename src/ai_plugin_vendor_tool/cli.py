@@ -7,7 +7,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from ai_plugin_vendor_tool import config, fetch, lock, mirror, notice
+from ai_plugin_vendor_tool import __version__, config, fetch, lock, mirror, notice
 from ai_plugin_vendor_tool.config import PluginMeta, Source
 from ai_plugin_vendor_tool.lock import LockData, LockEntry
 
@@ -17,6 +17,7 @@ def _build_parser() -> argparse.ArgumentParser:
         prog="ai-plugin-vendor-tool",
         description="Vendor Claude Code plugin skills from upstream GitHub repos.",
     )
+    p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     common = argparse.ArgumentParser(add_help=False)
