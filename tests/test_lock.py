@@ -25,6 +25,16 @@ def test_write_then_read_lock_roundtrips(tmp_path: Path) -> None:
     assert lock.read_lock(path) == data
 
 
+def test_write_lock_creates_parent_dir(tmp_path: Path) -> None:
+    path = tmp_path / "nested" / "vendor" / "vendored-skills.lock"
+    data: LockData = {
+        "alice": LockEntry(repo="alice/skills", ref="main", commit="abc", skills=[]),
+    }
+    lock.write_lock(path, data)
+    assert path.is_file()
+    assert lock.read_lock(path) == data
+
+
 def test_write_lock_sorts_keys_and_indents(tmp_path: Path) -> None:
     # Use two well-formed entries so the test reflects the real lock shape;
     # ordering is checked via JSON output, not the entry contents.

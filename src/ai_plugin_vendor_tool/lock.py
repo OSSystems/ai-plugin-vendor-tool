@@ -31,4 +31,5 @@ def read_lock(path: Path) -> LockData:
 
 
 def write_lock(path: Path, data: LockData) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
