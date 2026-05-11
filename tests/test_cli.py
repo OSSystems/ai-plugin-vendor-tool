@@ -205,3 +205,34 @@ def test_version_flag(capsys):
     assert excinfo.value.code == 0
     out = capsys.readouterr().out
     assert __version__ in out
+
+
+def test_check_scope_reported_when_filtered(make_plugin, fake_gh, capsys):
+    toml = (
+        _alice_toml()
+        + """
+        [[source]]
+        name        = "bob-skills"
+        repo        = "bob/skills"
+        ref         = "main"
+        subpath     = "skills"
+        attribution = "Bob"
+    """
+    )
+    root = make_plugin(vendor_toml=toml)
+    _setup_alice(fake_gh)
+    fake_gh.set_commit("bob/skills", "main", "bobsha")
+    fake_gh.set_tarball(
+        "bob/skills",
+        "bobsha",
+        root_prefix="bob-skills-bob",
+        layout={"skills/bob-thing/SKILL.md": "# bob\n"},
+    )
+    cli.main(["sync", "--plugin-root", str(root)])
+    capsys.readouterr()  # discard sync output
+
+    rc = cli.main(["check", "--plugin-root", str(root), "--source", "alice-skills"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "in sync (scope: alice-skills)" in out
+    assert "bob-skills" not in out

@@ -57,7 +57,7 @@ def _select_sources(all_sources: list[Source], wanted: list[str] | None) -> list
     return [s for s in all_sources if s.name in wanted]
 
 
-def _do_check(sources: list[Source], lock_data: LockData) -> int:
+def _do_check(sources: list[Source], lock_data: LockData, scope: list[str] | None) -> int:
     drift: list[tuple[str, str | None, str]] = []
     for s in sources:
         sha = fetch.resolve_commit(s.repo, s.ref)
@@ -65,13 +65,14 @@ def _do_check(sources: list[Source], lock_data: LockData) -> int:
         old = entry["commit"] if entry is not None else None
         if sha != old:
             drift.append((s.name, old, sha))
+    scope_suffix = f" (scope: {', '.join(scope)})" if scope else ""
     if drift:
-        print("drift detected:")
+        print(f"drift detected{scope_suffix}:")
         for name, old, new in drift:
             old_s = old[:12] if old else "(absent)"
             print(f"  {name}: {old_s} -> {new[:12]}")
         return 1
-    print("in sync")
+    print(f"in sync{scope_suffix}")
     return 0
 
 
@@ -145,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
     lock_data = lock.read_lock(plugin_root / config.VENDOR_LOCK)
 
     if args.cmd == "check":
-        return _do_check(selected, lock_data)
+        return _do_check(selected, lock_data, args.source)
     if args.cmd == "sync":
         return _do_sync(plugin_root, meta, all_sources, selected, lock_data, args.prune)
     return 2  # unreachable; argparse enforces required subcommand
