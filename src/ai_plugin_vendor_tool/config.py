@@ -25,6 +25,10 @@ def _empty_globs() -> list[str]:
     return []
 
 
+def _empty_subst() -> dict[str, str]:
+    return {}
+
+
 @dataclass(frozen=True, slots=True)
 class Source:
     name: str
@@ -35,6 +39,19 @@ class Source:
     license: str = "Apache-2.0"
     attribution: str = ""
     attribution_url: str = ""
+    # When set, the whole `subpath` subtree is treated as a single skill and
+    # mirrored to `skills/<skill_name>/`. Use for upstreams that keep SKILL.md
+    # at the subpath root rather than in a directory named after the skill.
+    skill_name: str = ""
+    # Literal text replacements applied to every UTF-8 file copied for this
+    # source, in order. Use to rewrite install-time placeholders (e.g. a
+    # hard-coded root path) into plugin-relative ones. Order matters: list
+    # more specific keys first.
+    substitutions: dict[str, str] = field(default_factory=_empty_subst)
+    # Globs (relative to each mirrored skill dir) whose matched files get the
+    # executable bit set after copy. Use when upstream ships helper scripts
+    # non-executable and relies on its own installer to chmod them.
+    executable: list[str] = field(default_factory=_empty_globs)
 
 
 def _extract_author(value: object) -> str:

@@ -29,6 +29,17 @@ def render_notice(meta: PluginMeta, sources: list[Source], lock: LockData) -> st
         skills = entry["skills"] if entry is not None else []
         url = s.attribution_url or f"https://github.com/{s.repo}"
         skills_fmt = ", ".join(skills) if skills else "(none)"
+        if s.substitutions:
+            tail = (
+                "Skills listed above are copied from the source under the\n"
+                f"{s.license} license with attribution as required, with placeholder\n"
+                "substitutions applied (see vendor/vendored-skills.toml).\n"
+            )
+        else:
+            tail = (
+                "Skills listed above are verbatim copies redistributed under the\n"
+                f"{s.license} license with attribution as required.\n"
+            )
         blocks.append(
             f"\n## {s.name}\n\n"
             f"Source:       {url}\n"
@@ -36,8 +47,7 @@ def render_notice(meta: PluginMeta, sources: list[Source], lock: LockData) -> st
             f"Attribution:  {s.attribution}\n"
             f"Ref:          {s.ref} (commit {sha})\n"
             f"Skills ({len(skills)}): {skills_fmt}\n\n"
-            f"Skills listed above are verbatim copies redistributed under the\n"
-            f"{s.license} license with attribution as required.\n"
+            f"{tail}"
         )
     return header + "".join(blocks)
 

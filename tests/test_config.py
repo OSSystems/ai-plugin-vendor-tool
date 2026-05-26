@@ -65,6 +65,29 @@ def test_load_sources_parses_toml(make_plugin):
     assert bob.subpath == ""  # default
     assert bob.license == "Apache-2.0"  # default
     assert bob.exclude_globs == ["docs/**"]
+    assert bob.skill_name == ""  # default
+    assert bob.substitutions == {}  # default
+    assert bob.executable == []  # default
+
+
+def test_load_sources_parses_skill_name_and_substitutions(make_plugin):
+    root = make_plugin(
+        vendor_toml="""
+        [[source]]
+        name          = "remote-ssh-dev"
+        repo          = "owner/remote-ssh-dev"
+        subpath       = "skill"
+        skill_name    = "remote-ssh-dev"
+        substitutions = { "__ROOT__/skill" = "${CLAUDE_PLUGIN_ROOT}/skills/remote-ssh-dev" }
+        executable    = ["scripts/*.sh"]
+        """
+    )
+    sources = config.load_sources(root)
+    assert len(sources) == 1
+    s = sources[0]
+    assert s.skill_name == "remote-ssh-dev"
+    assert s.substitutions == {"__ROOT__/skill": "${CLAUDE_PLUGIN_ROOT}/skills/remote-ssh-dev"}
+    assert s.executable == ["scripts/*.sh"]
 
 
 def test_load_sources_missing_returns_empty(make_plugin):

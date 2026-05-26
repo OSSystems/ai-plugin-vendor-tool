@@ -166,10 +166,56 @@ exclude_globs   = []                                 # globs evaluated under the
 license         = "Apache-2.0"                       # default: "Apache-2.0" — appears in NOTICE
 attribution     = "<copyright holder>"               # appears in NOTICE
 attribution_url = "https://github.com/<owner>/<repo>" # falls back to https://github.com/<repo>
+skill_name      = ""                                 # see "single-skill sources" below
+substitutions   = {}                                 # literal text replacements (see below)
+executable      = []                                 # globs whose files get +x (see below)
 ```
 
 `name` must be unique across sources — it's the slug used for the
 `vendor/<name>/` directory, the lock key, and the NOTICE block heading.
+
+### Single-skill sources (`skill_name`)
+
+By default the tool mirrors each top-level directory of `subpath` that contains
+a `SKILL.md`, naming the skill after that directory. Some upstreams instead keep
+`SKILL.md` at the root of the path (e.g. the whole repo, or a `skill/` dir).
+Set `skill_name` to mirror the entire `subpath` subtree as one skill into
+`skills/<skill_name>/`:
+
+```toml
+[[source]]
+name       = "remote-ssh-dev"
+repo       = "owner/remote-ssh-dev"
+subpath    = "skill"            # SKILL.md lives directly here
+skill_name = "remote-ssh-dev"   # → skills/remote-ssh-dev/
+```
+
+The path must contain a `SKILL.md` at its root or `sync` fails.
+
+### Substitutions
+
+`substitutions` is an ordered table of literal `find = replace` pairs applied to
+every UTF-8 file copied for the source (binary files are left untouched). Use it
+to rewrite install-time placeholders into plugin-relative paths:
+
+```toml
+substitutions = { "__SKILL_ROOT__/skill" = "${CLAUDE_PLUGIN_ROOT}/skills/remote-ssh-dev" }
+```
+
+List more specific keys first — replacements run in declaration order. When a
+source declares substitutions, its `NOTICE` block notes the copy was modified
+rather than verbatim.
+
+### Executable bits
+
+GitHub tarballs (and many upstreams) store helper scripts non-executable,
+relying on an installer to `chmod +x` them. `executable` is a list of globs,
+evaluated relative to each mirrored skill directory, whose matched files get the
+executable bit set after copy:
+
+```toml
+executable = ["scripts/*.sh"]
+```
 
 ## Lock format
 
